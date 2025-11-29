@@ -13,7 +13,7 @@ import "./VirtualTryOnAI.css";
 // =============================
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-// Backend health endpoint (your backend exposes /health)
+// Your backend exposes: /health
 const HEALTH_URL = `${API_BASE_URL}/health`;
 
 const VirtualTryOnAI = () => {
@@ -34,23 +34,8 @@ const VirtualTryOnAI = () => {
   const [recommendations, setRecommendations] = useState([]);
   const [fashionAdvice, setFashionAdvice] = useState(null);
 
-  const [clothingItem] = useState({
-    item_type: "shirt",
-    color: "black",
-    size: "M",
-  });
-
-  const [bodyMeasurements] = useState({
-    height: 170,
-    chest: 95,
-    waist: 80,
-    hips: 100,
-    shoulder_width: 40,
-    body_shape: "rectangle",
-  });
-
   // ============================================
-  // BACKEND HEALTH CHECK (FIXED)
+  // BACKEND HEALTH CHECK (FIX)
   // ============================================
   useEffect(() => {
     checkBackendHealth();
@@ -65,11 +50,11 @@ const VirtualTryOnAI = () => {
         setSuccess("Backend connected successfully!");
       } else {
         setBackendReady(false);
-        setError("Backend online but returned wrong response.");
+        setError("Backend online but invalid response.");
       }
     } catch {
       setBackendReady(false);
-      setError("Backend not available. Railway is offline or wrong URL.");
+      setError("Backend not available. Railway offline or wrong URL.");
     }
   };
 
@@ -89,14 +74,13 @@ const VirtualTryOnAI = () => {
   };
 
   // ============================================
-  // REAL TRY-ON REQUEST (CORRECT)
+  // REAL TRY-ON REQUEST
   // ============================================
   const processVirtualTryOn = async () => {
     if (!personImage || !clothingImage)
       return setError("Upload both person and clothing images");
 
-    if (!backendReady)
-      return setError("Backend not connected.");
+    if (!backendReady) return setError("Backend not connected.");
 
     setLoading(true);
     setError(null);
@@ -138,21 +122,21 @@ const VirtualTryOnAI = () => {
   };
 
   // ============================================
-  // MOCK AI (PLACEHOLDERS)
+  // MOCK AI – SAFE FALLBACKS
   // ============================================
   const analyzeBody = () => {
     setFitAnalysis({
       body_shape: "Rectangle",
       proportions: "Balanced upper and lower body",
       analysis:
-        "Rectangle body shapes look best with structured layers and defined waist outfits.",
+        "Rectangle shapes look best with structured layers and defined waist outfits.",
     });
     setSuccess("Body analysis completed!");
   };
 
   const getFashionAdvice = () => {
     setFashionAdvice(
-      "Try fitted shirts, contrast jackets, and avoid baggy oversized clothing."
+      "Try fitted shirts, contrast jackets, and avoid oversized loose tops."
     );
     setSuccess("Fashion advice generated!");
   };
@@ -160,15 +144,15 @@ const VirtualTryOnAI = () => {
   const getRecommendations = () => {
     setRecommendations([
       "Structured shirts with fitted jeans",
-      "Layered jackets for contrast",
-      "Avoid oversized loose tops",
-      "Use vertical stripes to enhance height",
+      "Layered jackets for definition",
+      "Avoid boxy oversized clothing",
+      "Vertical stripes for height enhancement",
     ]);
     setSuccess("Recommendations generated!");
   };
 
   // ============================================
-  // UI COMPONENTS
+  // IMAGE UPLOAD UI
   // ============================================
   const ImageUploadSection = ({ label, image, imageRef, onChange }) => (
     <div className="upload-section">
@@ -222,6 +206,7 @@ const VirtualTryOnAI = () => {
           >
             Virtual Try-On
           </button>
+
           <button
             className={`tab ${activeTab === "advice" ? "active" : ""}`}
             onClick={() => setActiveTab("advice")}
@@ -230,7 +215,6 @@ const VirtualTryOnAI = () => {
           </button>
         </div>
 
-        {/* TRY-ON TAB */}
         {activeTab === "tryon" && (
           <div className="tab-content">
             <div className="upload-container">
@@ -283,7 +267,6 @@ const VirtualTryOnAI = () => {
           </div>
         )}
 
-        {/* ADVICE TAB */}
         {activeTab === "advice" && (
           <div className="tab-content">
             <button
