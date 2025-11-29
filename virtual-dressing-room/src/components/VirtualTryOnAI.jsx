@@ -11,7 +11,11 @@ import {
 import { getCurrentUser, uploadTryOnResult } from "../supabase";
 import "./VirtualTryOnAI.css";
 
+// =============================
+// CORRECT BACKEND CONFIG
+// =============================
 const API_BASE_URL = import.meta.env.VITE_API_URL;
+const HEALTH_URL = `${API_BASE_URL}/api/tryon/health`;
 
 const VirtualTryOnAI = () => {
   const [personImage, setPersonImage] = useState(null);
@@ -55,15 +59,18 @@ const VirtualTryOnAI = () => {
 
   const checkBackendHealth = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/health`);
+      const response = await fetch(HEALTH_URL);
+
       if (response.ok) {
         setBackendReady(true);
         setSuccess("Backend connected successfully!");
       } else {
-        setError("Backend not responding correctly.");
+        setBackendReady(false);
+        setError("Backend online but invalid response.");
       }
     } catch {
-      setError("Backend not available (Railway offline or wrong URL).");
+      setBackendReady(false);
+      setError("Backend not available. Railway is offline or wrong URL.");
     }
   };
 
@@ -83,7 +90,7 @@ const VirtualTryOnAI = () => {
   };
 
   // ============================================
-  // REAL TRY-ON REQUEST
+  // REAL TRY-ON (SENDS TO RAILWAY)
   // ============================================
   const processVirtualTryOn = async () => {
     if (!personImage || !clothingImage)
@@ -131,7 +138,7 @@ const VirtualTryOnAI = () => {
   };
 
   // ============================================
-  // MOCK AI FEATURES (DETAILED)
+  // MOCK AI FEATURES
   // ============================================
   const analyzeBody = async () => {
     setSuccess(null);
@@ -145,20 +152,19 @@ const VirtualTryOnAI = () => {
         waist: "Moderately defined",
         hips: "Similar to shoulders",
       },
-      posture: "Neutral posture, good body alignment",
+      posture: "Neutral posture, good alignment",
       analysis:
-        "Your body shape is a rectangle, meaning your shoulders and hips are similar in width with a less defined waist. Clothes that add structure on top or definition at the waist look best.",
+        "Your shape is rectangle. Outfits with waist definition and structured upper layers work best.",
     };
 
-    setSuccess("Body analysis completed!");
     setFitAnalysis(MOCK);
+    setSuccess("Body analysis completed!");
   };
 
   const getFashionAdvice = async () => {
     const MOCK = {
-      status: "success",
       advice:
-        "With a rectangle body shape, choose clothing that adds visual curves. Go for layered outfits, belted jackets, A-line shirts, and contrast colors. Avoid boxy fits.",
+        "Rectangle body shape benefits from contrast outfits, belted jackets, and fitted tops.",
     };
 
     setFashionAdvice(MOCK.advice);
@@ -167,12 +173,11 @@ const VirtualTryOnAI = () => {
 
   const getRecommendations = async () => {
     const MOCK = {
-      status: "success",
       recommendations: [
-        "Slim-fit black jeans with structured shirts",
-        "Layered outfits with contrast jackets",
-        "Vertical stripe shirts for height enhancement",
+        "Structured shirts with fitted jeans",
+        "Layered jackets with contrast colors",
         "Avoid oversized boxy clothing",
+        "Try vertical stripes for enhanced height",
       ],
     };
 
@@ -206,6 +211,9 @@ const VirtualTryOnAI = () => {
     </div>
   );
 
+  // ============================================
+  // RENDER UI
+  // ============================================
   return (
     <div className="virtual-tryon-ai">
       <div className="container">
