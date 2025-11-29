@@ -6,7 +6,6 @@ Fixes double-prefix issue by sending raw base64 strings.
 import logging
 from flask import Blueprint, request, jsonify
 import numpy as np
-import cv2
 import base64
 from io import BytesIO
 from PIL import Image
