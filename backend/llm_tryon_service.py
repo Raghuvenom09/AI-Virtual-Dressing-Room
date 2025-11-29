@@ -6,7 +6,6 @@ Uses IDM-VTON via Gradio Client (Authenticated)
 import os
 import logging
 import numpy as np
-import cv2
 from PIL import Image
 from io import BytesIO
 import base64
