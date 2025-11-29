@@ -7,12 +7,15 @@ export const useVirtualDressing = () => {
     const [error, setError] = useState(null);
     const [resultImage, setResultImage] = useState(null);
 
-    // Convert File → Base64
+    // Convert File → base64 string
     const fileToBase64 = (file) => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onload = () => resolve(reader.result.split(",")[1]);
-            reader.onerror = (err) => reject(err);
+            reader.onload = () => {
+                const base64 = reader.result.split(",")[1];
+                resolve(base64);
+            };
+            reader.onerror = reject;
             reader.readAsDataURL(file);
         });
     };
@@ -22,7 +25,6 @@ export const useVirtualDressing = () => {
         setError(null);
 
         try {
-            // Convert both images to base64
             const personBase64 = await fileToBase64(personFile);
             const clothBase64 = await fileToBase64(clothFile);
 
@@ -34,7 +36,9 @@ export const useVirtualDressing = () => {
 
             const response = await fetch(`${API_BASE_URL}/api/tryon/process`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify(payload),
             });
 
@@ -44,11 +48,9 @@ export const useVirtualDressing = () => {
                 throw new Error(data.message || "Try-on failed");
             }
 
-            const output = `data:image/jpeg;base64,${data.result_image}`;
-            setResultImage(output);
+            setResultImage(`data:image/jpeg;base64,${data.result_image}`);
 
             return data;
-
         } catch (err) {
             setError(err.message);
             console.error("Try-on error:", err);
