@@ -68,7 +68,8 @@ class TryOnResult:
 class VirtualTryOnEngine:
     def __init__(self):
         self.hf_space = "yisol/IDM-VTON"
-        self.api_url = f"https://api-inference.huggingface.co/models/{self.hf_space}"
+        # Updated to use new HuggingFace router endpoint (old api-inference.huggingface.co is deprecated)
+        self.api_url = f"https://router.huggingface.co/models/{self.hf_space}"
         self.hf_token = os.getenv("HF_TOKEN")
         logger.info(f"VirtualTryOnEngine using HF Inference API: {self.hf_space}")
 

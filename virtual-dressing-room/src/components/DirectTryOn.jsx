@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Upload, Loader, AlertCircle, CheckCircle, Download, RotateCcw } from "lucide-react";
 
+// Backend API URL from environment variable
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 const DirectTryOn = ({ personImage, clothingImage, onClose }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState(null);
@@ -22,7 +25,7 @@ const DirectTryOn = ({ personImage, clothingImage, onClose }) => {
 
   const checkBackendHealth = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/tryon/health");
+      const response = await fetch(`${API_BASE_URL}/api/tryon/health`);
       if (response.ok) {
         setBackendReady(true);
       }
@@ -63,7 +66,7 @@ const DirectTryOn = ({ personImage, clothingImage, onClose }) => {
       };
 
       console.log("Sending try-on request...");
-      const response = await fetch("http://localhost:5000/api/tryon/process", {
+      const response = await fetch(`${API_BASE_URL}/api/tryon/process`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

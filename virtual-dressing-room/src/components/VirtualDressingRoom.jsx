@@ -4,6 +4,9 @@ import {
   ShoppingBag, Zap, Heart, Share2, X, Check, LogOut, Home, Loader, AlertCircle
 } from "lucide-react";
 
+// Backend API URL from environment variable
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 const VirtualDressingRoom = () => {
   const [userImage, setUserImage] = useState(null);
   const [selectedOutfit, setSelectedOutfit] = useState(null);
@@ -28,7 +31,7 @@ const VirtualDressingRoom = () => {
 
   const checkBackendHealth = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/tryon/health");
+      const response = await fetch(`${API_BASE_URL}/api/tryon/health`);
       if (response.ok) {
         setBackendReady(true);
       }
@@ -124,7 +127,7 @@ const VirtualDressingRoom = () => {
         },
       };
 
-      const response = await fetch("http://localhost:5000/api/tryon/process", {
+      const response = await fetch(`${API_BASE_URL}/api/tryon/process`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
