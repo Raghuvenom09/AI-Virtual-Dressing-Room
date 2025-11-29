@@ -68,13 +68,13 @@ class TryOnResult:
 class VirtualTryOnEngine:
     def __init__(self):
         self.hf_space = "yisol/IDM-VTON"
-        # Updated to use new HuggingFace router endpoint (old api-inference.huggingface.co is deprecated)
-        # Try router API - if it fails, will fallback to checking if Space supports Inference API
-        # Note: Some Spaces may not support Inference API directly
-        self.api_url = f"https://router.huggingface.co/models/{self.hf_space}"
+        # yisol/IDM-VTON is a HuggingFace Space, not a model
+        # Spaces use their own API endpoint format: https://{username}-{spacename}.hf.space/api/predict
+        space_name = self.hf_space.replace("/", "-").lower()
+        self.api_url = f"https://{space_name}.hf.space/api/predict"
         self.hf_token = os.getenv("HF_TOKEN")
-        logger.info(f"VirtualTryOnEngine using HF Inference API: {self.hf_space}")
-        logger.info(f"API URL: {self.api_url}")
+        logger.info(f"VirtualTryOnEngine using HuggingFace Space API: {self.hf_space}")
+        logger.info(f"Space API URL: {self.api_url}")
 
     def process_tryon(
         self,
@@ -96,59 +96,79 @@ class VirtualTryOnEngine:
             person_b64 = self._img_to_b64(person_image)
             cloth_b64 = self._img_to_b64(clothing_image)
 
+            # HuggingFace Space API expects data in format: [image1, image2, ...]
+            # Convert base64 to data URI format for Space API
+            person_data_uri = f"data:image/png;base64,{person_b64}"
+            cloth_data_uri = f"data:image/png;base64,{cloth_b64}"
+            
+            # Space API payload format: array of inputs matching the Space's function signature
             payload = {
-                "inputs": {
-                    "person_image": person_b64,
-                    "clothing_image": cloth_b64,
-                    "description": f"{clothing_item.color} {clothing_item.item_type}"
-                }
+                "data": [
+                    person_data_uri,  # person image
+                    cloth_data_uri     # clothing image
+                ]
             }
 
+            # Space API doesn't need Authorization header, but keep it for compatibility
+            space_headers = {"Content-Type": "application/json"}
+            
             response = requests.post(
                 self.api_url,
                 json=payload,
-                headers=headers,
-                timeout=60
+                headers=space_headers,
+                timeout=120  # Spaces can take longer
             )
 
-            logger.info(f"HF API Status: {response.status_code}")
-            logger.info(f"HF API URL: {self.api_url}")
+            logger.info(f"Space API Status: {response.status_code}")
+            logger.info(f"Space API URL: {self.api_url}")
 
-            if response.status_code == 404:
-                # 404 might mean the Space doesn't support Inference API
-                # Try alternative endpoint format
-                alt_url = f"https://router.huggingface.co/hf-inference/models/{self.hf_space}"
-                logger.warning(f"404 on primary endpoint, trying alternative: {alt_url}")
+            if response.status_code != 200:
+                error_text = response.text
+                logger.error(f"Space API Error Response: {error_text}")
+                
+                # Try alternative payload format (some Spaces use different formats)
+                logger.warning("Trying alternative payload format...")
+                alt_payload = {
+                    "data": [
+                        person_data_uri,
+                        cloth_data_uri,
+                        f"{clothing_item.color} {clothing_item.item_type}"  # description
+                    ]
+                }
                 
                 alt_response = requests.post(
-                    alt_url,
-                    json=payload,
-                    headers=headers,
-                    timeout=60
+                    self.api_url,
+                    json=alt_payload,
+                    headers=space_headers,
+                    timeout=120
                 )
                 
                 if alt_response.status_code == 200:
                     response = alt_response
-                    self.api_url = alt_url  # Update for future use
-                    logger.info("Alternative endpoint worked!")
+                    logger.info("Alternative payload format worked!")
                 else:
-                    error_text = response.text
-                    logger.error(f"HF API Error (both endpoints failed): {error_text}")
-                    raise Exception(
-                        f"Model/Space '{self.hf_space}' not found or doesn't support Inference API. "
-                        f"HTTP {response.status_code}: {error_text}. "
-                        f"Note: Some HuggingFace Spaces may not be accessible via Inference API."
-                    )
-            
-            if response.status_code != 200:
-                error_text = response.text
-                logger.error(f"HF API Error Response: {error_text}")
-                raise Exception(f"HTTP {response.status_code}: {error_text}")
+                    raise Exception(f"HTTP {response.status_code}: {error_text}")
 
             data = response.json()
-
-            # Returned base64 image
-            output_b64 = data.get("generated_image")
+            
+            # Space API returns data in format: {"data": [result_image_base64, ...]}
+            # Extract the result image
+            if isinstance(data, dict) and "data" in data:
+                result_data = data["data"]
+                if isinstance(result_data, list) and len(result_data) > 0:
+                    # Result is usually the first element, might be base64 string or data URI
+                    output_b64 = result_data[0]
+                    # Remove data URI prefix if present
+                    if isinstance(output_b64, str) and output_b64.startswith("data:image"):
+                        output_b64 = output_b64.split(",")[1] if "," in output_b64 else output_b64
+                else:
+                    raise Exception("Space API returned empty result")
+            else:
+                # Fallback: try to get image directly
+                output_b64 = data.get("generated_image") or data.get("image") or data.get("result")
+                if not output_b64:
+                    raise Exception(f"Unexpected Space API response format: {data}")
+            
             result_img = self._b64_to_img(output_b64)
 
             # Recommendations
