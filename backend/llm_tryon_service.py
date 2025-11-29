@@ -69,9 +69,12 @@ class VirtualTryOnEngine:
     def __init__(self):
         self.hf_space = "yisol/IDM-VTON"
         # Updated to use new HuggingFace router endpoint (old api-inference.huggingface.co is deprecated)
+        # Try router API - if it fails, will fallback to checking if Space supports Inference API
+        # Note: Some Spaces may not support Inference API directly
         self.api_url = f"https://router.huggingface.co/models/{self.hf_space}"
         self.hf_token = os.getenv("HF_TOKEN")
         logger.info(f"VirtualTryOnEngine using HF Inference API: {self.hf_space}")
+        logger.info(f"API URL: {self.api_url}")
 
     def process_tryon(
         self,
@@ -109,9 +112,38 @@ class VirtualTryOnEngine:
             )
 
             logger.info(f"HF API Status: {response.status_code}")
+            logger.info(f"HF API URL: {self.api_url}")
 
+            if response.status_code == 404:
+                # 404 might mean the Space doesn't support Inference API
+                # Try alternative endpoint format
+                alt_url = f"https://router.huggingface.co/hf-inference/models/{self.hf_space}"
+                logger.warning(f"404 on primary endpoint, trying alternative: {alt_url}")
+                
+                alt_response = requests.post(
+                    alt_url,
+                    json=payload,
+                    headers=headers,
+                    timeout=60
+                )
+                
+                if alt_response.status_code == 200:
+                    response = alt_response
+                    self.api_url = alt_url  # Update for future use
+                    logger.info("Alternative endpoint worked!")
+                else:
+                    error_text = response.text
+                    logger.error(f"HF API Error (both endpoints failed): {error_text}")
+                    raise Exception(
+                        f"Model/Space '{self.hf_space}' not found or doesn't support Inference API. "
+                        f"HTTP {response.status_code}: {error_text}. "
+                        f"Note: Some HuggingFace Spaces may not be accessible via Inference API."
+                    )
+            
             if response.status_code != 200:
-                raise Exception(response.text)
+                error_text = response.text
+                logger.error(f"HF API Error Response: {error_text}")
+                raise Exception(f"HTTP {response.status_code}: {error_text}")
 
             data = response.json()
 
