@@ -1,9 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   Upload,
-  Zap,
-  BarChart3,
-  Sparkles,
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
@@ -15,7 +12,9 @@ import "./VirtualTryOnAI.css";
 // CORRECT BACKEND CONFIG
 // =============================
 const API_BASE_URL = import.meta.env.VITE_API_URL;
-const HEALTH_URL = `${API_BASE_URL}/api/tryon/health`;
+
+// Backend health endpoint (your backend exposes /health)
+const HEALTH_URL = `${API_BASE_URL}/health`;
 
 const VirtualTryOnAI = () => {
   const [personImage, setPersonImage] = useState(null);
@@ -51,7 +50,7 @@ const VirtualTryOnAI = () => {
   });
 
   // ============================================
-  // BACKEND HEALTH CHECK
+  // BACKEND HEALTH CHECK (FIXED)
   // ============================================
   useEffect(() => {
     checkBackendHealth();
@@ -66,7 +65,7 @@ const VirtualTryOnAI = () => {
         setSuccess("Backend connected successfully!");
       } else {
         setBackendReady(false);
-        setError("Backend online but invalid response.");
+        setError("Backend online but returned wrong response.");
       }
     } catch {
       setBackendReady(false);
@@ -90,13 +89,14 @@ const VirtualTryOnAI = () => {
   };
 
   // ============================================
-  // REAL TRY-ON (SENDS TO RAILWAY)
+  // REAL TRY-ON REQUEST (CORRECT)
   // ============================================
   const processVirtualTryOn = async () => {
     if (!personImage || !clothingImage)
       return setError("Upload both person and clothing images");
 
-    if (!backendReady) return setError("Backend not connected.");
+    if (!backendReady)
+      return setError("Backend not connected.");
 
     setLoading(true);
     setError(null);
@@ -138,50 +138,32 @@ const VirtualTryOnAI = () => {
   };
 
   // ============================================
-  // MOCK AI FEATURES
+  // MOCK AI (PLACEHOLDERS)
   // ============================================
-  const analyzeBody = async () => {
-    setSuccess(null);
-    setError(null);
-
-    const MOCK = {
-      status: "success",
+  const analyzeBody = () => {
+    setFitAnalysis({
       body_shape: "Rectangle",
-      proportions: {
-        shoulders: "Slightly wider",
-        waist: "Moderately defined",
-        hips: "Similar to shoulders",
-      },
-      posture: "Neutral posture, good alignment",
+      proportions: "Balanced upper and lower body",
       analysis:
-        "Your shape is rectangle. Outfits with waist definition and structured upper layers work best.",
-    };
-
-    setFitAnalysis(MOCK);
+        "Rectangle body shapes look best with structured layers and defined waist outfits.",
+    });
     setSuccess("Body analysis completed!");
   };
 
-  const getFashionAdvice = async () => {
-    const MOCK = {
-      advice:
-        "Rectangle body shape benefits from contrast outfits, belted jackets, and fitted tops.",
-    };
-
-    setFashionAdvice(MOCK.advice);
+  const getFashionAdvice = () => {
+    setFashionAdvice(
+      "Try fitted shirts, contrast jackets, and avoid baggy oversized clothing."
+    );
     setSuccess("Fashion advice generated!");
   };
 
-  const getRecommendations = async () => {
-    const MOCK = {
-      recommendations: [
-        "Structured shirts with fitted jeans",
-        "Layered jackets with contrast colors",
-        "Avoid oversized boxy clothing",
-        "Try vertical stripes for enhanced height",
-      ],
-    };
-
-    setRecommendations(MOCK.recommendations);
+  const getRecommendations = () => {
+    setRecommendations([
+      "Structured shirts with fitted jeans",
+      "Layered jackets for contrast",
+      "Avoid oversized loose tops",
+      "Use vertical stripes to enhance height",
+    ]);
     setSuccess("Recommendations generated!");
   };
 
@@ -219,7 +201,7 @@ const VirtualTryOnAI = () => {
       <div className="container">
         <div className="header">
           <h1>🎨 AI Virtual Try-On</h1>
-          <p>Use AI to visualize outfits on your body</p>
+          <p>See outfits on your body using AI</p>
         </div>
 
         {error && (
@@ -248,7 +230,7 @@ const VirtualTryOnAI = () => {
           </button>
         </div>
 
-        {/* ================= TRY-ON TAB ================ */}
+        {/* TRY-ON TAB */}
         {activeTab === "tryon" && (
           <div className="tab-content">
             <div className="upload-container">
@@ -301,7 +283,7 @@ const VirtualTryOnAI = () => {
           </div>
         )}
 
-        {/* ================= ADVICE TAB ================ */}
+        {/* ADVICE TAB */}
         {activeTab === "advice" && (
           <div className="tab-content">
             <button
